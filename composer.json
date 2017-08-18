@@ -1,5 +1,5 @@
 {
-    "name": "appzcoder/crud-generator",
+    "name": "shopex/luban-crud-generator",
     "license": "MIT",
     "description": "Laravel 5 CRUD Generator",
     "keywords": [
@@ -10,9 +10,8 @@
     ],
     "authors": [
         {
-            "name": "Sohel Amin",
-            "email": "sohelamincse@gmail.com",
-            "homepage": "http://www.appzcoder.com"
+            "name": "shopex",
+            "email": "dev@shopex.cn"
         }
     ],
     "require": {
@@ -26,7 +25,7 @@
     },
     "autoload": {
         "psr-4": {
-            "Appzcoder\\CrudGenerator\\": "src/"
+            "Shopex\\CrudGenerator\\": "src/"
         },
         "classmap": [
             "tests"
@@ -35,7 +34,7 @@
     "extra": {
         "laravel": {
             "providers": [
-                "Appzcoder\\CrudGenerator\\CrudGeneratorServiceProvider"
+                "Shopex\\CrudGenerator\\CrudGeneratorServiceProvider"
             ]
         }
     }
