@@ -1,6 +1,6 @@
 <?php
 
-namespace Appzcoder\CrudGenerator;
+namespace Shopex\CrudGenerator;
 
 use Illuminate\Support\ServiceProvider;
 
@@ -18,25 +18,8 @@ class CrudGeneratorServiceProvider extends ServiceProvider
      *
      * @return void
      */
-    public function boot()
-    {
-        $this->publishes([
-            __DIR__ . '/../config/crudgenerator.php' => config_path('crudgenerator.php'),
-        ]);
+    public function boot(){
 
-        $this->publishes([
-            __DIR__ . '/../publish/views/' => base_path('resources/views/'),
-        ]);
-
-        if (\App::VERSION() <= '5.2') {
-            $this->publishes([
-                __DIR__ . '/../publish/css/app.css' => public_path('css/app.css'),
-            ]);
-        }
-
-        $this->publishes([
-            __DIR__ . '/stubs/' => base_path('resources/crud-generator/'),
-        ]);
     }
 
     /**
@@ -47,12 +30,12 @@ class CrudGeneratorServiceProvider extends ServiceProvider
     public function register()
     {
         $this->commands(
-            'Appzcoder\CrudGenerator\Commands\CrudCommand',
-            'Appzcoder\CrudGenerator\Commands\CrudControllerCommand',
-            'Appzcoder\CrudGenerator\Commands\CrudModelCommand',
-            'Appzcoder\CrudGenerator\Commands\CrudMigrationCommand',
-            'Appzcoder\CrudGenerator\Commands\CrudViewCommand',
-            'Appzcoder\CrudGenerator\Commands\CrudLangCommand'
+            'Shopex\CrudGenerator\Commands\CrudCommand',
+            'Shopex\CrudGenerator\Commands\CrudControllerCommand',
+            'Shopex\CrudGenerator\Commands\CrudModelCommand',
+            'Shopex\CrudGenerator\Commands\CrudMigrationCommand',
+            'Shopex\CrudGenerator\Commands\CrudViewCommand',
+            'Shopex\CrudGenerator\Commands\CrudLangCommand'
         );
     }
 }
