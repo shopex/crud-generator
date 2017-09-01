@@ -22,7 +22,11 @@ class CrudControllerCommand extends GeneratorCommand
                             {--validations= : Validation details for the fields.}
                             {--route-group= : Prefix of the route group.}
                             {--pagination=25 : The amount of models per page for index pages.}
-                            {--force : Overwrite already existing controller.}';
+                            {--force : Overwrite already existing controller.}
+                            {--searchs= : 可被搜索字段.}
+                            {--inlists= : 在列表显示的字段.}
+                            {--model-title= : model的中文名称.}
+                            ';
 
     /**
      * The console command description.
@@ -87,6 +91,10 @@ class CrudControllerCommand extends GeneratorCommand
     {
         $stub = $this->files->get($this->getStub());
 
+        $searchs = $this->option('searchs');
+        $inlists = $this->option('inlists');
+        $modelTitle = $this->option('model-title');
+
         $viewPath = $this->option('view-path') ? $this->option('view-path') . '.' : '';
         $crudName = strtolower($this->option('crud-name'));
         $crudNameSingular = str_singular($crudName);
@@ -100,6 +108,7 @@ class CrudControllerCommand extends GeneratorCommand
         $fields = $this->option('fields');
         $validations = rtrim($this->option('validations'), ';');
 
+        //validationRules bengin 
         $validationRules = '';
         if (trim($validations) != '') {
             $validationRules = "\$this->validate(\$request, [";
@@ -120,7 +129,9 @@ class CrudControllerCommand extends GeneratorCommand
             $validationRules = substr($validationRules, 0, -1); // lose the last comma
             $validationRules .= "\n\t\t]);";
         }
-
+        //validationRules end
+        
+        //whereSnippet begin 
         $snippet = <<<EOD
         if (\$request->hasFile('{{fieldName}}')) {
             foreach(\$request['{{fieldName}}'] as \$file){
@@ -134,28 +145,36 @@ class CrudControllerCommand extends GeneratorCommand
             }
         }
 EOD;
-
-        $fieldsArray = explode(';', $fields);
+       
+        $fieldsArray = $this->splitInputKeyValue($fields); 
         $fileSnippet = '';
         $whereSnippet = '';
-
         if ($fields) {
             $x = 0;
-            foreach ($fieldsArray as $index => $item) {
-                $itemArray = explode('#', $item);
-
-                if (trim($itemArray[1]) == 'file') {
-                    $fileSnippet .= "\n\n" . str_replace('{{fieldName}}', trim($itemArray[0]), $snippet) . "\n";
+            foreach ($fieldsArray as $field => $fieldType) {
+                $fieldName = trim($field);
+                if (trim($fieldType) == 'file') {
+                    $fileSnippet .= "\n\n" . str_replace('{{fieldName}}', $fieldName, $snippet) . "\n";
                 }
 
-                $fieldName = trim($itemArray[0]);
-
-                $whereSnippet .= ($index == 0) ? "where('$fieldName', 'LIKE', \"%\$keyword%\")" . "\n\t\t\t\t" : "->orWhere('$fieldName', 'LIKE', \"%\$keyword%\")" . "\n\t\t\t\t";
+                $whereSnippet .= ($whereSnippet == '') ? "where('$fieldName', 'LIKE', \"%\$keyword%\")" . "\n\t\t\t\t" : "->orWhere('$fieldName', 'LIKE', \"%\$keyword%\")" . "\n\t\t\t\t";
             }
 
             $whereSnippet .= "->";
         }
-
+        //whereSnippet end
+         $searchsArray = $this->splitInputKeyValue($searchs);
+         $searchsSnippet = '';
+         foreach ($searchsArray as $search_filed => $search_name) {
+             $searchsSnippet.="->addSearch('$search_name', '$search_filed', '".$fieldsArray[$search_filed]."')\r                    ";
+         }
+         $inlistsArray = $this->splitInputKeyValue($inlists);
+         $inlistsSnippet = '';
+         foreach ($inlistsArray as $inlist_filed => $inlist_name) {
+             $inlistsSnippet.="->addColumn('$inlist_name', '$inlist_filed')\r                    ";
+         }
+         $router = $routePrefix ? $routePrefix . '/' . snake_case($modelName, '-') : snake_case($modelName, '-');
+         $editCode = '<a href="\''.'.url("/'.$router.'/$id/edit").\' " title="编辑"><button class="btn btn-primary btn-xs"><i class="fa fa-pencil-square-o" aria-hidden="true"></i>编辑</button></a>';
         return $this->replaceNamespace($stub, $name)
             ->replaceViewPath($stub, $viewPath)
             ->replaceViewName($stub, $viewName)
@@ -171,9 +190,33 @@ EOD;
             ->replacePaginationNumber($stub, $perPage)
             ->replaceFileSnippet($stub, $fileSnippet)
             ->replaceWhereSnippet($stub, $whereSnippet)
+            ->replaceModelTitle($stub, $modelTitle)
+            ->replaceAddColumn($stub, $inlistsSnippet)
+            ->replaceAddSearch($stub, $searchsSnippet)
+            ->replaceEditCode($stub, $editCode)
             ->replaceClass($stub, $name);
     }
 
+     public function splitInputKeyValue($input , $s1=";", $s2="#"){
+        $result = [];
+        $arr = explode($s1,$input);
+        if (is_array($arr)) {   
+            foreach ($arr as $value) {
+                list($k,$v) = explode($s2,$value);
+                $result[$k] = $v;
+            }
+        }
+        return $result;
+    }
+
+    public function splitInput($input , $s1=";", $s2="#"){
+        $result = [];
+        $arr = explode($s1,$input);
+        foreach ($arr as $value) {
+            $result[] = explode($value,$s2);
+        }
+        return $result;
+    }
     /**
      * Replace the viewName fo the given stub.
      *
@@ -414,6 +457,70 @@ EOD;
     {
         $stub = str_replace(
             '{{whereSnippet}}', $whereSnippet, $stub
+        );
+
+        return $this;
+    }
+    /**
+     * Replace the where snippet for the given stub
+     *
+     * @param $stub
+     * @param $whereSnippet
+     *
+     * @return $this
+     */
+    protected function replaceAddColumn(&$stub, $addColumn)
+    {
+        $stub = str_replace(
+            '{{addColumn}}', $addColumn, $stub
+        );
+
+        return $this;
+    }
+    /**
+     * Replace the where snippet for the given stub
+     *
+     * @param $stub
+     * @param $whereSnippet
+     *
+     * @return $this
+     */
+    protected function replaceAddSearch(&$stub, $addSearch)
+    {
+        $stub = str_replace(
+            '{{addSearch}}', $addSearch, $stub
+        );
+
+        return $this;
+    }
+    /**
+     * Replace the where snippet for the given stub
+     *
+     * @param $stub
+     * @param $whereSnippet
+     *
+     * @return $this
+     */
+    protected function replaceModelTitle(&$stub, $modeltitle)
+    {
+        $stub = str_replace(
+            '{{modelTitle}}', $modeltitle, $stub
+        );
+
+        return $this;
+    }
+    /**
+     * Replace the where snippet for the given stub
+     *
+     * @param $stub
+     * @param $whereSnippet
+     *
+     * @return $this
+     */
+    protected function replaceEditCode(&$stub, $editcode)
+    {
+        $stub = str_replace(
+            '{{editCode}}', $editcode, $stub
         );
 
         return $this;

@@ -28,7 +28,11 @@ class CrudCommand extends Command
                             {--route-group= : Prefix of the route group.}
                             {--view-path= : The name of the view path.}
                             {--localize=no : Allow to localize? yes|no.}
-                            {--locales=en : Locales language type.}';
+                            {--locales=en : Locales language type.}
+                            {--searchs= : 可被搜索字段.}
+                            {--inlists= : 在列表显示的字段.}
+                            {--model-title= : model的中文名称.}
+                            ';
 
     /**
      * The console command description.
@@ -78,6 +82,10 @@ class CrudCommand extends Command
             $fields = $this->processJSONFields($this->option('fields_from_file'));
         }
 
+        $searchs = $this->option('searchs');
+        $inlists = $this->option('inlists');
+        $modelTitle = $this->option('model-title');
+
         $primaryKey = $this->option('pk');
         $viewPath = $this->option('view-path');
 
@@ -111,11 +119,10 @@ class CrudCommand extends Command
         if ($this->option('fields_from_file')) {
             $validations = $this->processJSONValidations($this->option('fields_from_file'));
         }
-
-        $this->call('crud:controller', ['name' => $controllerNamespace . $name . 'Controller', '--crud-name' => $name, '--model-name' => $modelName, '--model-namespace' => $modelNamespace, '--view-path' => $viewPath, '--route-group' => $routeGroup, '--pagination' => $perPage, '--fields' => $fields, '--validations' => $validations]);
+        $this->call('crud:controller', ['name' => $controllerNamespace . $name . 'Controller', '--crud-name' => $name, '--model-name' => $modelName, '--model-namespace' => $modelNamespace, '--view-path' => $viewPath, '--route-group' => $routeGroup, '--pagination' => $perPage, '--fields' => $fields, '--validations' => $validations,'--searchs'=>$searchs,'--inlists'=>$inlists,'--model-title'=>$modelTitle]);
         $this->call('crud:model', ['name' => $modelNamespace . $modelName, '--fillable' => $fillable, '--table' => $tableName, '--pk' => $primaryKey, '--relationships' => $relationships]);
         $this->call('crud:migration', ['name' => $migrationName, '--schema' => $fields, '--pk' => $primaryKey, '--indexes' => $indexes, '--foreign-keys' => $foreignKeys]);
-        $this->call('crud:view', ['name' => $name, '--fields' => $fields, '--validations' => $validations, '--view-path' => $viewPath, '--route-group' => $routeGroup, '--localize' => $localize, '--pk' => $primaryKey]);
+        $this->call('crud:view', ['name' => $name, '--fields' => $fields, '--validations' => $validations, '--view-path' => $viewPath, '--route-group' => $routeGroup, '--localize' => $localize, '--pk' => $primaryKey,'--model-title'=>$modelTitle]);
         if ($localize == 'yes') {
             $this->call('crud:lang', ['name' => $name, '--fields' => $fields, '--locales' => $locales]);
         }

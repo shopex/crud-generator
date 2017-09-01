@@ -20,7 +20,9 @@ class CrudViewCommand extends Command
                             {--route-group= : Prefix of the route group.}
                             {--pk=id : The name of the primary key.}
                             {--validations= : Validation details for the fields.}
-                            {--localize=no : Localize the view? yes|no.}';
+                            {--localize=no : Localize the view? yes|no.}
+                            {--model-title= : model的中文名称.}
+                            ';
 
     /**
      * The console command description.
@@ -86,6 +88,7 @@ class CrudViewCommand extends Command
         'crudNameSingular',
         'primaryKey',
         'modelName',
+        'modelTitle',
         'modelNameCap',
         'viewName',
         'routePrefix',
@@ -268,6 +271,7 @@ class CrudViewCommand extends Command
         $this->crudNameCap = ucwords($this->crudName);
         $this->crudNameSingular = str_singular($this->crudName);
         $this->modelName = str_singular($this->argument('name'));
+        $this->modelTitle = $this->option('model-title');
         $this->modelNameCap = ucfirst($this->modelName);
         $this->customData = $this->option('custom-data');
         $this->primaryKey = $this->option('pk');
@@ -314,7 +318,10 @@ class CrudViewCommand extends Command
                     $options = "['" . $commaSeparetedString . "']";
 
                     $this->formFields[$x]['options'] = $options;
-                }
+                    
+                }else{
+                    $this->formFields[$x]['label_name'] = trim($itemArray[2]);
+                }   
 
                 $x++;
             }
@@ -331,13 +338,16 @@ class CrudViewCommand extends Command
             }
 
             $field = $value['name'];
-            $label = ucwords(str_replace('_', ' ', $field));
+            $label = $value['label_name'];//ucwords(str_replace('_', ' ', $field));
             if ($this->option('localize') == 'yes') {
                 $label = '{{ trans(\'' . $this->crudName . '.' . $field . '\') }}';
             }
             $this->formHeadingHtml .= '<th>' . $label . '</th>';
             $this->formBodyHtml .= '<td>{{ $item->' . $field . ' }}</td>';
-            $this->formBodyHtmlForShowView .= '<tr><th> ' . $label . ' </th><td> {{ $%%crudNameSingular%%->' . $field . ' }} </td></tr>';
+            $this->formBodyHtmlForShowView .= '<tr>
+                    <th> ' . $label . ' </th>
+                    <td> {{ $%%crudNameSingular%%->' . $field . ' }} </td>
+                </tr>';
 
             $i++;
         }
@@ -355,11 +365,12 @@ class CrudViewCommand extends Command
     private function defaultTemplating()
     {
         return [
-            'index' => ['formHeadingHtml', 'formBodyHtml', 'crudName', 'crudNameCap', 'modelName', 'viewName', 'routeGroup', 'primaryKey'],
+            'index' => ['formHeadingHtml', 'formBodyHtml', 'crudName', 'crudNameCap', 'modelName', 'viewName', 'routeGroup', 'primaryKey','modelTitle'],
             'form' => ['formFieldsHtml'],
-            'create' => ['crudName', 'crudNameCap', 'modelName', 'modelNameCap', 'viewName', 'routeGroup', 'viewTemplateDir'],
-            'edit' => ['crudName', 'crudNameSingular', 'crudNameCap', 'modelNameCap', 'modelName', 'viewName', 'routeGroup', 'primaryKey', 'viewTemplateDir'],
-            'show' => ['formHeadingHtml', 'formBodyHtml', 'formBodyHtmlForShowView', 'crudName', 'crudNameSingular', 'crudNameCap', 'modelName', 'viewName', 'routeGroup', 'primaryKey'],
+            'create' => ['crudName', 'crudNameCap', 'modelName', 'modelNameCap', 'viewName', 'routeGroup', 'viewTemplateDir','modelTitle'],
+            'edit' => ['crudName', 'crudNameSingular', 'crudNameCap', 'modelNameCap', 'modelName', 'viewName', 'routeGroup', 'primaryKey', 'viewTemplateDir','modelTitle'],
+            'show' => ['formHeadingHtml', 'formBodyHtml', 'formBodyHtmlForShowView', 'crudName', 'crudNameSingular', 'crudNameCap', 'modelName', 'viewName', 'routeGroup', 'primaryKey','modelTitle'],
+            'detail' => ['formHeadingHtml', 'formBodyHtml', 'formBodyHtmlForShowView', 'crudName', 'crudNameSingular', 'crudNameCap', 'modelName', 'viewName', 'routeGroup', 'primaryKey'],
         ];
     }
 
@@ -435,8 +446,8 @@ class CrudViewCommand extends Command
     {
         $formGroup = File::get($this->viewDirectoryPath . 'form-fields/wrap-field.blade.stub');
 
-        $labelText = "'" . ucwords(strtolower(str_replace('_', ' ', $item['name']))) . "'";
-
+        // $labelText = "'" . ucwords(strtolower(str_replace('_', ' ', $item['name']))) . "'";
+        $labelText =  "'" .$item['label_name']. "'";
         if ($this->option('localize') == 'yes') {
             $labelText = 'trans(\'' . $this->crudName . '.' . $item['name'] . '\')';
         }

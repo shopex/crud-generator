@@ -4,6 +4,7 @@ namespace DummyNamespace;
 
 use DummyRootNamespaceHttp\Requests;
 use DummyRootNamespaceHttp\Controllers\Controller;
+use Shopex\LubanAdmin\Finder;
 
 use DummyRootNamespace{{modelNamespace}}{{modelName}};
 use Illuminate\Http\Request;
@@ -18,16 +19,25 @@ class DummyClass extends Controller
      */
     public function index(Request $request)
     {
-        $keyword = $request->get('search');
-        $perPage = {{pagination}};
+        $dataSet = {{modelName}}::class;
 
-        if (!empty($keyword)) {
-            ${{crudName}} = {{modelName}}::{{whereSnippet}}paginate($perPage);
-        } else {
-            ${{crudName}} = {{modelName}}::paginate($perPage);
-        }
+        $finder = Finder::create($dataSet, '{{modelTitle}}列表')
+                    ->setId('id')
+                    ->addAction('新建{{modelTitle}}', [$this, 'create'])
+                    ->addSort('按修改时间倒排', 'created_at', 'desc')
+                    ->addSort('按修改时间正排', 'created_at')
+                    ->addBatchAction('删除', [$this, 'destroy'])
+                    ->addColumn('操作', 'id')->modifier(function($id){
+                        return '{{editCode}}';
+                    })->html(true)
+                    {{addColumn}}
+                    {{addSearch}}
+                    ->addTab("今日创建", [
+                            ['created_at','>',strtotime(date('Y-m-d',time()))],
+                        ])
+                    ->addInfoPanel('基本信息', [$this, 'detail']);
 
-        return view('{{viewPath}}{{viewName}}.index', compact('{{crudName}}'));
+        return $finder->view();
     }
 
     /**
@@ -72,7 +82,19 @@ class DummyClass extends Controller
 
         return view('{{viewPath}}{{viewName}}.show', compact('{{crudNameSingular}}'));
     }
+    /**
+     * Display the specified resource.
+     *
+     * @param  int  $id
+     *
+     * @return \Illuminate\View\View
+     */
+    public function detail($id)
+    {
+        ${{crudNameSingular}} = {{modelName}}::findOrFail($id);
 
+        return view('{{viewPath}}{{viewName}}.detail', compact('{{crudNameSingular}}'));
+    }
     /**
      * Show the form for editing the specified resource.
      *
