@@ -65,8 +65,8 @@ class CrudCommand extends Command
     public function handle()
     {
         $name = $this->argument('name');
-        $modelName = str_singular($name);
-        $migrationName = str_plural(snake_case($name));
+        $modelName = $name;
+        $migrationName = snake_case($name);
         $tableName = $migrationName;
 
         $routeGroup = $this->option('route-group');

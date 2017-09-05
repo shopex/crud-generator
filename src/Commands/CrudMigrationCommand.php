@@ -108,7 +108,6 @@ class CrudMigrationCommand extends GeneratorCommand
 
         $schema = rtrim($this->option('schema'), ';');
         $fields = explode(';', $schema);
-
         $data = array();
 
         if ($schema) {
@@ -130,6 +129,8 @@ class CrudMigrationCommand extends GeneratorCommand
 
                 if (isset($fieldArray[2]) && in_array(trim($fieldArray[2]), $modifierLookup)) {
                     $data[$x]['modifier'] = "->" . trim($fieldArray[2]) . "()";
+                }else{
+                    $data[$x]['modifier'] = "->comment('" . trim($fieldArray[2]) . "')";
                 }
 
                 $x++;
