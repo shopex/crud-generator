@@ -1,7 +1,11 @@
 @extends('admin::layout')
 
 @section('title')
-    创建%%modelTitle%% <a href="{{ url('/%%routeGroup%%%%viewName%%') }}" title="Back"><button class="btn btn-warning btn-xs"><i class="fa fa-arrow-left" aria-hidden="true"></i>返回</button></a>
+    创建%%modelTitle%% 
+@endsection
+
+@section('action-bar')
+<a href="{{ url('/%%routeGroup%%%%viewName%%') }}" title="Back"><button class="btn btn-warning btn-xs"><i class="fa fa-arrow-left" aria-hidden="true"></i>返回</button></a>
 @endsection
 
 @section('content')
