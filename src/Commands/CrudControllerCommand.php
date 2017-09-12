@@ -97,7 +97,7 @@ class CrudControllerCommand extends GeneratorCommand
 
         $viewPath = $this->option('view-path') ? $this->option('view-path') . '.' : '';
         $crudName = strtolower($this->option('crud-name'));
-        $crudNameSingular = str_singular($crudName);
+        $crudNameSingular = $crudName;
         $modelName = $this->option('model-name');
         $modelNamespace = $this->option('model-namespace');
         $routeGroup = ($this->option('route-group')) ? $this->option('route-group') . '/' : '';
