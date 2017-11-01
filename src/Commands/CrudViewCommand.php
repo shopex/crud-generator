@@ -258,6 +258,9 @@ class CrudViewCommand extends Command
 
         $this->delimiter = config('crudgenerator.custom_delimiter') ? config('crudgenerator.custom_delimiter') : ['%%', '%%'];
     }
+    public function getTypeLookup(){
+        return $this->typeLookup;
+    }
 
     /**
      * Execute the console command.

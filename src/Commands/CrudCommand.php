@@ -4,7 +4,7 @@ namespace Shopex\CrudGenerator\Commands;
 
 use File;
 use Illuminate\Console\Command;
-
+use Shopex\LubanAdmin\Models\Generator;//双向依赖了，先这样吧
 class CrudCommand extends Command
 {
     /**
@@ -21,10 +21,14 @@ class CrudCommand extends Command
                             {--model-namespace= : Namespace of the model inside "app" dir.}
                             {--pk=id : The name of the primary key.}
                             {--pagination=25 : The amount of models per page for index pages.}
+                            {--id=1 : generator id}
                             {--indexes= : The fields to add an index to.}
                             {--foreign-keys= : The foreign keys for the table.}
                             {--relationships= : The relationships for the model.}
                             {--route=yes : Include Crud route to routes.php? yes|no.}
+                            {--view=yes : Include Crud view? yes|no.}
+                            {--controller=yes : Include Crud controller? yes|no.}
+                            {--migration=yes : Include Crud controller? yes|no.}
                             {--route-group= : Prefix of the route group.}
                             {--view-path= : The name of the view path.}
                             {--localize=no : Allow to localize? yes|no.}
@@ -119,10 +123,90 @@ class CrudCommand extends Command
         if ($this->option('fields_from_file')) {
             $validations = $this->processJSONValidations($this->option('fields_from_file'));
         }
-        $this->call('crud:controller', ['name' => $controllerNamespace . $name . 'Controller', '--crud-name' => $name, '--model-name' => $modelName, '--model-namespace' => $modelNamespace, '--view-path' => $viewPath, '--route-group' => $routeGroup, '--pagination' => $perPage, '--fields' => $fields, '--validations' => $validations,'--searchs'=>$searchs,'--inlists'=>$inlists,'--model-title'=>$modelTitle]);
-        $this->call('crud:model', ['name' => $modelNamespace . $modelName, '--fillable' => $fillable, '--table' => $tableName, '--pk' => $primaryKey, '--relationships' => $relationships]);
-        $this->call('crud:migration', ['name' => $migrationName, '--schema' => $fields, '--pk' => $primaryKey, '--indexes' => $indexes, '--foreign-keys' => $foreignKeys]);
-        $this->call('crud:view', ['name' => $name, '--fields' => $fields, '--validations' => $validations, '--view-path' => $viewPath, '--route-group' => $routeGroup, '--localize' => $localize, '--pk' => $primaryKey,'--model-title'=>$modelTitle]);
+        if (strtolower($this->option('controller')) === 'yes') {
+            $this->call('crud:controller', [
+                'name' => $controllerNamespace . $name . 'Controller', 
+                '--crud-name' => $name, 
+                '--model-name' => $modelName, 
+                '--model-namespace' => $modelNamespace, 
+                '--view-path' => $viewPath, 
+                '--route-group' => $routeGroup, 
+                '--pagination' => $perPage, 
+                '--fields' => $fields, 
+                '--validations' => $validations,
+                '--searchs'=>$searchs,
+                '--inlists'=>$inlists,
+                '--model-title'=>$modelTitle]);
+            
+            $ctl_path = 'Http/Controllers/'.str_replace('\\','/',$controllerNamespace) . $name . 'Controller.php';
+            $allfiles['controller'] = $this->filePath($ctl_path);
+            
+        }
+        $this->call('crud:model', [
+            'name' => $modelNamespace . $modelName, 
+            '--fillable' => $fillable, 
+            '--table' => $tableName, 
+            '--pk' => $primaryKey, 
+            '--relationships' => $relationships]
+        );
+        
+        $mdl_path = str_replace('\\','/',$modelNamespace) . $modelName . '.php';
+        $allfiles['model'] = $this->filePath($mdl_path);
+
+        if (strtolower($this->option('migration')) === 'yes') {
+            $this->call('crud:migration', [
+                'name' => $migrationName, 
+                '--schema' => $fields, 
+                '--pk' => $primaryKey, 
+                '--indexes' => $indexes, 
+                '--foreign-keys' => $foreignKeys]
+            );
+            $filelist = File::files(database_path('migrations'));
+            $migration_path = end($filelist);
+            $allfiles['migration']['path'] = basename($migration_path);
+            $allfiles['migration']['hash'] = File::hash($migration_path);
+        }
+
+        if (strtolower($this->option('view')) === 'yes') {
+            $this->call('crud:view', [
+                'name' => $name, 
+                '--fields' => $fields, 
+                '--validations' => $validations, 
+                '--view-path' => $viewPath, 
+                '--route-group' => $routeGroup, 
+                '--localize' => $localize, 
+                '--pk' => $primaryKey, 
+                '--model-title'=>$modelTitle]
+            );
+            
+            $viewDirectory = config('view.paths')[0] . '/';
+            $viewName = snake_case($name, '-');
+            if ($viewPath !== null) {
+                $view_path =  $viewPath . '/' . $viewName . '/';
+            } else {
+                $view_path = $viewName . '/';
+            }
+            $view_list = ['index','form','create','edit','show','detail'];
+            foreach ($view_list as $key) {
+                $file_path = $view_path.$key.'.blade.php';
+                $real_file_path = $viewDirectory.$file_path;
+                if(File::exists($real_file_path) ){
+                    $viewlist['path'] = $file_path;
+                    $viewlist['hash'] = File::hash($real_file_path);
+                    $viewlist['status'] = 'succ';
+                }else{
+                    $viewlist['path'] = $file_path;
+                    $viewlist['status'] = 'fial';
+                }
+                $allfiles['view'][] = $viewlist;
+            }
+        }
+            
+        if ($this->option('id') > 0) {
+            $generator = Generator::findOrFail($this->option('id'));
+            $generator->update(['files'=>json_encode($allfiles)]);
+        }
+        
         if ($localize == 'yes') {
             $this->call('crud:lang', ['name' => $name, '--fields' => $fields, '--locales' => $locales]);
         }
@@ -148,7 +232,18 @@ class CrudCommand extends Command
             }
         }
     }
-
+    protected function filePath($file_path)
+    {
+        $real_file_path = app_path($file_path);
+        if(File::exists($real_file_path) ){
+            $allfiles['path'] = $file_path;
+            $allfiles['hash'] = File::hash($real_file_path);
+            $allfiles['status'] = 'succ';
+        }else{
+            $allfiles['status'] = 'fial';
+        }
+        return $allfiles;
+    }
     /**
      * Add routes.
      *

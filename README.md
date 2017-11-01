@@ -12,7 +12,7 @@
 ## Installation
 Open your terminal(CLI), go to the root directory of your Laravel project, then follow the following procedure.
 
-1. Run
+1. Run  
     ```
     composer require appzcoder/crud-generator --dev
     ```
